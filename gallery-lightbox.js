@@ -14,8 +14,8 @@
   'use strict';
 
   var CSS = [
-    '.glb-overlay{position:fixed;inset:0;z-index:2147483000;background:rgba(10,10,10,.94);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s ease;touch-action:pan-y;-webkit-user-select:none;user-select:none}',
-    '.glb-overlay.glb-open{opacity:1}',
+    '.glb-overlay{position:fixed;inset:0;z-index:2147483000;background:rgba(10,10,10,.94);display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s ease,visibility .2s ease;touch-action:pan-y;-webkit-user-select:none;user-select:none}',
+    '.glb-overlay.glb-open{opacity:1;visibility:visible;pointer-events:auto}',
     '.glb-stage{position:relative;max-width:100vw;max-height:100vh;display:flex;align-items:center;justify-content:center}',
     '.glb-img{display:block;max-width:calc(100vw - 32px);max-height:calc(100vh - 32px);width:auto;height:auto;object-fit:contain;box-shadow:0 10px 40px rgba(0,0,0,.6);opacity:0;transition:opacity .25s ease;cursor:default}',
     '.glb-img.glb-ready{opacity:1}',
@@ -48,6 +48,7 @@
   var index = 0;
   var lastFocus = null;
   var touchStartX = null;
+  var closeTimer = null;
 
   function injectStyles() {
     var style = document.createElement('style');
@@ -180,9 +181,14 @@
 
   function open(anchor) {
     if (!overlay) build();
+    if (closeTimer !== null) {
+      clearTimeout(closeTimer);
+      closeTimer = null;
+    }
     collect(anchor);
     lastFocus = document.activeElement;
     overlay.hidden = false;
+    overlay.setAttribute('aria-hidden', 'false');
     document.body.classList.add('glb-noscroll');
     // Force a style flush so the opacity transition runs.
     void overlay.offsetWidth;
@@ -194,11 +200,13 @@
   function close() {
     if (!overlay || overlay.hidden) return;
     overlay.classList.remove('glb-open');
+    overlay.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('glb-noscroll');
-    setTimeout(function () {
+    closeTimer = setTimeout(function () {
       overlay.hidden = true;
       img.removeAttribute('src');
       img.classList.remove('glb-ready');
+      closeTimer = null;
     }, 200);
     if (lastFocus && typeof lastFocus.focus === 'function') lastFocus.focus({ preventScroll: true });
   }
